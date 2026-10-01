@@ -1,90 +1,218 @@
 import 'package:flutter/material.dart';
-import 'package:thischeat/models/food_item.dart'; // untuk akses FoodItem.sampleData
-import 'package:thischeat/pages/cart_page.dart';
-import 'package:thischeat/pages/home_page.dart';
-import 'package:thischeat/pages/profile_page.dart';
+import 'package:latkuis/models/food_item.dart';
 
-// RootPage — halaman kerangka utama yang berisi navigasi bawah (BottomNavBar).
-// StatefulWidget karena menyimpan state indeks tab yang aktif.
-class RootPage extends StatefulWidget {
-  const RootPage({super.key});
+class DetailPage extends StatefulWidget {
+  final FoodItem food;
+  const DetailPage({super.key, required this.food});
 
   @override
-  State<RootPage> createState() => _RootPageState();
+  State<DetailPage> createState() => _DetailPageState();
 }
 
-class _RootPageState extends State<RootPage> {
-  // State: indeks tab yang sedang aktif (0 = Menu, 1 = Keranjang, 2 = Profil)
-  int _currentIndex = 0;
+class _DetailPageState extends State<DetailPage> {
+  late final TextEditingController _descController;
 
-  // Daftar halaman yang ditampilkan — satu per tab
-  // 'const': semua halaman dibuat sebagai konstanta (tidak ada state yang perlu dijaga saat inisialisasi)
-  final List<Widget> _pages = const [
-    HomePage(),   // tab index 0
-    CartPage(),   // tab index 1
-    ProfilePage(), // tab index 2
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Mengisi teks awal controller dengan deskripsi makanan saat ini
+    _descController = TextEditingController(text: widget.food.description);
+  }
 
-  // Getter: hitung berapa item yang sudah ada di keranjang (qty > 0)
-  // Dihitung ulang setiap build() dipanggil
-  int get _cartCount =>
-      FoodItem.sampleData.where((f) => f.quantity > 0).length;
+  @override
+  void dispose() {
+    _descController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final food = widget.food;
+
     return Scaffold(
-      // IndexedStack: menampilkan hanya satu child sesuai 'index',
-      // tapi SEMUA child tetap hidup di memori → state tiap tab tidak hilang saat ganti tab
-      // Alternatif: Navigator (state hilang), PageView (bisa swipe)
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      backgroundColor: const Color(0xFFFFF8F3),
+      appBar: AppBar(
+        title: Text(
+          food.name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.orange, Colors.deepOrange],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-
-      // NavigationBar: bottom navigation bar Material 3
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex, // tab yang aktif
-        // onDestinationSelected: callback saat tab ditekan, menerima indeks baru
-        onDestinationSelected: (index) {
-          setState(() => _currentIndex = index); // ganti tab → rebuild
-        },
-        indicatorColor: Colors.orange.shade100, // warna latar indikator tab aktif
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-
-        // destinations: daftar tab yang tampil di NavigationBar
-        destinations: [
-          // Tab 0: Menu
-          const NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu, color: Colors.deepOrange),
-            label: 'Menu',
-          ),
-
-          // Tab 1: Keranjang — dengan Badge untuk menampilkan jumlah item
-          NavigationDestination(
-            // Badge.count: menampilkan lingkaran kecil berisi angka di atas ikon
-            icon: Badge.count(
-              count: _cartCount,
-              // isLabelVisible: sembunyikan badge jika keranjang kosong
-              isLabelVisible: _cartCount > 0,
-              child: const Icon(Icons.shopping_cart_outlined),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Gambar makanan
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 200,
+                child: Image.network(
+                  food.imageUrl,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: Colors.grey.shade100,
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.orange,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stack) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Center(
+                      child: Icon(Icons.fastfood, size: 64, color: Colors.grey),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            selectedIcon: Badge.count(
-              count: _cartCount,
-              isLabelVisible: _cartCount > 0,
-              child: const Icon(Icons.shopping_cart, color: Colors.deepOrange),
-            ),
-            label: 'Keranjang',
-          ),
+            const SizedBox(height: 16),
 
-          // Tab 2: Profil
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: Colors.deepOrange),
-            label: 'Profil',
-          ),
-        ],
+            // Informasi dasar makanan
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    food.name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Rp ${food.formattedPrice} / porsi',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Kartu form edit deskripsi
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ubah Deskripsi',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _descController,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      hintText: 'Tuliskan deskripsi baru makanan di sini...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.orange,
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.orange.shade200,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Tombol simpan perubahan deskripsi
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  // Mengembalikan string deskripsi baru ke halaman sebelumnya
+                  Navigator.pop(context, _descController.text.trim());
+                },
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: const Text(
+                  'Simpan Deskripsi',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 2,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
